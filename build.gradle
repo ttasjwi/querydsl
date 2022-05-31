@@ -43,6 +43,9 @@ dependencies {
 	testCompileOnly 'org.projectlombok:lombok'
 	testAnnotationProcessor 'org.projectlombok:lombok'
 
+	// 쿼리 parameter를 로그로 남김
+	implementation 'com.github.gavlyukovskiy:p6spy-spring-boot-starter:1.8.0'
+
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }
 
