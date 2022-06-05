@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
 
+import static com.ttasjwi.querydsl.member.domain.QMember.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
@@ -61,12 +62,12 @@ public class QuerydslBasicTest {
 
     @Test
     public void startQuerydsl() {
-        QMember m = new QMember("m");
+        //QMember m = new QMember("m1"); // QMember의 인자가 JPQL의 alias로 쓰임. 같은 테이블 조인할 때 쓰기
 
         Member findMember = queryFactory
-                .select(m)
-                .from(m)
-                .where(m.name.eq("member1"))
+                .select(member)
+                .from(member)
+                .where(member.name.eq("member1"))
                 .fetchOne();
 
         assertThat(findMember.getName()).isEqualTo("member1");
