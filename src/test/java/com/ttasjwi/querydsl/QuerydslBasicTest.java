@@ -1,5 +1,6 @@
 package com.ttasjwi.querydsl;
 
+import com.querydsl.core.QueryResults;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.ttasjwi.querydsl.member.domain.Member;
 import com.ttasjwi.querydsl.member.domain.QMember;
@@ -13,7 +14,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
 
+import java.util.List;
+
 import static com.ttasjwi.querydsl.member.domain.QMember.*;
+import static org.assertj.core.api.Assertions.as;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
@@ -93,5 +97,36 @@ public class QuerydslBasicTest {
                         member.age.between(10,30))
                 .fetchOne();
         assertThat(findMember.getName()).isEqualTo("member1");
+    }
+
+    @Test
+    public void resultFetchTest() throws Exception {
+//        List<Member> fetch = queryFactory.selectFrom(member)
+//                .fetch();
+//
+//        Member fetchOne = queryFactory.selectFrom(member)
+//                .fetchOne();
+
+        // fetch First는 limit(1).fetchOne()과 같다.
+//        Member fetchFirst = queryFactory.selectFrom(QMember.member)
+//                .fetchFirst();
+
+//        QueryResults<Member> results = queryFactory.selectFrom(member) // deprecated
+//                .fetchResults();
+//
+//        long total = results.getTotal();
+//        List<Member> contents = results.getResults();
+//
+//        queryFactory // deprecated
+//                .selectFrom(member)
+//                .fetchCount();
+
+        //Querydsl 5.0 이후에는 fetchCount가 deprecated 되었으므로 쓰지 않도록 할 것
+        // 명시적으로 페이징 쿼리랑, total 쿼리를 두개 분리해서 사용하는 것이 성능 최적화에 유리.
+       Long totalCount = queryFactory
+                .select(member.count()) // select count(member.member_id)
+                .from(member)
+                .fetchOne();
+        assertThat(totalCount).isEqualTo(4);
     }
 }
