@@ -3,9 +3,9 @@ package com.ttasjwi.querydsl;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
-import com.querydsl.core.types.Expression;
 import com.querydsl.core.types.ExpressionUtils;
 import com.querydsl.core.types.Projections;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.CaseBuilder;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.NumberExpression;
@@ -19,20 +19,20 @@ import com.ttasjwi.querydsl.member.dto.UserDto;
 import com.ttasjwi.querydsl.team.domain.Team;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
+import javax.persistence.criteria.CriteriaBuilder;
 import java.util.List;
 
 import static com.querydsl.jpa.JPAExpressions.select;
 import static com.ttasjwi.querydsl.member.domain.QMember.member;
 import static com.ttasjwi.querydsl.team.domain.QTeam.team;
-import static org.assertj.core.api.Assertions.as;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Slf4j
@@ -682,4 +682,39 @@ public class QuerydslBasicTest {
                 .where(builder)
                 .fetch();
     }
+
+    @Test
+    public void dynamicQuery_WhereParam() {
+        String nameParam = "member1";
+        Integer ageParam = null;
+
+        List<Member> result = searchMember2(nameParam, ageParam);
+        assertThat(result.size()).isEqualTo(1);
+    }
+
+    private List<Member> searchMember2(String nameParam, Integer ageParam) {
+        return queryFactory
+                .selectFrom(member)
+                .where(memberNameEq(nameParam), memberAgeEq(ageParam))
+                .fetch();
+    }
+
+    private BooleanExpression memberNameEq(String nameCondition) {
+        return nameCondition != null
+                ? member.name.eq(nameCondition)
+                : null;
+    }
+
+    private BooleanExpression memberAgeEq(Integer ageCondition) {
+        return ageCondition != null
+                ? member.age.eq(ageCondition)
+                : null;
+    }
+
+    // 재사용, 조합 가능
+    private BooleanExpression allEq(String nameCondition, Integer ageCondition) {
+        // 실제로는 null 체크 주의해야함
+        return memberNameEq(nameCondition).and(memberAgeEq(ageCondition));
+    }
+
 }
