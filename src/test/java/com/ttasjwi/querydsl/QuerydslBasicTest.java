@@ -5,6 +5,7 @@ import com.querydsl.core.Tuple;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.ttasjwi.querydsl.member.domain.Member;
 import com.ttasjwi.querydsl.team.domain.Team;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -17,6 +18,7 @@ import java.util.List;
 
 import static com.ttasjwi.querydsl.member.domain.QMember.member;
 import static com.ttasjwi.querydsl.team.domain.QTeam.team;
+import static org.assertj.core.api.Assertions.as;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
@@ -53,8 +55,8 @@ public class QuerydslBasicTest {
         //JPQL로 쿼리 작성
         String query =
                 "SELECT m " +
-                "From Member as m " +
-                "Where m.name = :name";
+                        "From Member as m " +
+                        "Where m.name = :name";
 
         Member findMember = em.createQuery(query, Member.class)
                 .setParameter("name", "member1")
@@ -93,7 +95,7 @@ public class QuerydslBasicTest {
                 .selectFrom(member)
                 .where(
                         member.name.eq("member1"),
-                        member.age.between(10,30))
+                        member.age.between(10, 30))
                 .fetchOne();
         assertThat(findMember.getName()).isEqualTo("member1");
     }
@@ -122,7 +124,7 @@ public class QuerydslBasicTest {
 
         //Querydsl 5.0 이후에는 fetchCount가 deprecated 되었으므로 쓰지 않도록 할 것
         // 명시적으로 페이징 쿼리랑, total 쿼리를 두개 분리해서 사용하는 것이 성능 최적화에 유리.
-       Long totalCount = queryFactory
+        Long totalCount = queryFactory
                 .select(member.count()) // select count(member.member_id)
                 .from(member)
                 .fetchOne();
@@ -196,9 +198,8 @@ public class QuerydslBasicTest {
         assertThat(offset).isEqualTo(1);
         assertThat(results.size()).isEqualTo(2);
     }
-    
+
     @Test
-    @DisplayName("")
     public void aggregation() {
         List<Tuple> results = queryFactory
                 .select(
@@ -242,5 +243,49 @@ public class QuerydslBasicTest {
 
         assertThat(teamB.get(team.name)).isEqualTo("teamB");
         assertThat(teamB.get(member.age.avg())).isEqualTo(35);
+    }
+
+    /**
+     * teamA에 속한 모든 회원
+     */
+
+    @Test
+    public void join() {
+        List<Member> result = queryFactory
+                .selectFrom(member)
+                .join(member.team, team) // 기본은 innerJoin, left, right 모두 가능
+                .where(team.name.eq("teamA"))
+                .fetch();
+
+        assertThat(result.size()).isEqualTo(2);
+        assertThat(result)
+                .extracting("name")
+                .containsExactly("member1", "member2");
+    }
+
+    /**
+     * 세타 조인(카테시안 조인)
+     * 회원 이름이 팀 이름과 같은 회원 조회
+     */
+
+    @Test
+    public void theta_join() {
+        //given
+        em.persist(new Member("teamA"));
+        em.persist(new Member("teamB"));
+        em.persist(new Member("teamC"));
+
+        em.flush();
+        em.clear();
+
+        List<Member> result = queryFactory
+                .select(member)
+                .from(member, team) // from절에 복수의 테이블 나열 -> 실제로 카테시안 조인(cross join) 쿼리 날아감
+                .where(member.name.eq(team.name))
+                .fetch();
+
+        assertThat(result)
+                .extracting("name")
+                .containsExactly("teamA", "teamB");
     }
 }
