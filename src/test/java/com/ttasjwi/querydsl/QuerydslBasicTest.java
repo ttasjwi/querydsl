@@ -4,7 +4,6 @@ import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.ttasjwi.querydsl.member.domain.Member;
-import com.ttasjwi.querydsl.member.domain.QMember;
 import com.ttasjwi.querydsl.team.domain.Team;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -14,11 +13,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
-
 import java.util.List;
 
-import static com.ttasjwi.querydsl.member.domain.QMember.*;
-import static org.assertj.core.api.Assertions.as;
+import static com.ttasjwi.querydsl.member.domain.QMember.member;
+import static com.ttasjwi.querydsl.team.domain.QTeam.team;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
@@ -219,5 +217,30 @@ public class QuerydslBasicTest {
         assertThat(tuple.get(member.age.avg())).isEqualTo(25);
         assertThat(tuple.get(member.age.max())).isEqualTo(40);
         assertThat(tuple.get(member.age.min())).isEqualTo(10);
+    }
+
+
+    /**
+     * 팀의 이름과 각 팀의 평균 연령
+     */
+
+    @Test
+    public void group() {
+        List<Tuple> result = queryFactory
+                .select(team.name, member.age.avg())
+                .from(member)
+                .join(member.team, team)
+                .groupBy(team.name)
+                .having(member.age.avg().between(10, 40))
+                .fetch();
+
+        Tuple teamA = result.get(0);
+        Tuple teamB = result.get(1);
+
+        assertThat(teamA.get(team.name)).isEqualTo("teamA");
+        assertThat(teamA.get(member.age.avg())).isEqualTo(15);
+
+        assertThat(teamB.get(team.name)).isEqualTo("teamB");
+        assertThat(teamB.get(member.age.avg())).isEqualTo(35);
     }
 }
