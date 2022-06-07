@@ -61,3 +61,16 @@ where
 - 연관관계가 없는 필드도 조인 가능(from절에 복수의 테이블 지정 -> cross join)
 
 ---
+
+## 문자열 더하기(concat)
+```java
+        String result = queryFactory
+                .select(member.name.concat("_").concat(member.age.stringValue()))
+                .from(member)
+                .where(member.name.eq("member1"))
+                .fetchOne();
+```
+- concat을 통해 문자열 결합. 체이닝을 통해 연속해서 덧붙일 수 있음
+- 문자타입이 아닌 경우( **숫자**, **enum**) stringValue 활용해서 문자열로 변환해서 쓸 것
+
+---

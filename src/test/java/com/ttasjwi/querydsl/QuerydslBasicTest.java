@@ -3,6 +3,7 @@ package com.ttasjwi.querydsl;
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
 import com.querydsl.core.types.dsl.CaseBuilder;
+import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.ttasjwi.querydsl.member.domain.Member;
@@ -23,6 +24,7 @@ import java.util.List;
 import static com.querydsl.jpa.JPAExpressions.select;
 import static com.ttasjwi.querydsl.member.domain.QMember.member;
 import static com.ttasjwi.querydsl.team.domain.QTeam.team;
+import static org.assertj.core.api.Assertions.as;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Slf4j
@@ -495,5 +497,30 @@ public class QuerydslBasicTest {
             log.info("memberName = {}, age =  {}, rank = {}",
                     tuple.get(member.name), tuple.get(member.age), tuple.get(rankPath));
         }
+    }
+
+    @Test
+    public void constant() {
+        List<Tuple> result = queryFactory
+                .select(member.name, Expressions.constant("A"))
+                .from(member)
+                .fetch();
+
+        for (Tuple tuple : result) {
+            log.info("memberName = {}, constant = {}",
+                    tuple.get(member.name), tuple.get(Expressions.constant("A")));
+        }
+    }
+
+    @Test
+    public void concat() {
+        String result = queryFactory
+                .select(member.name.concat("_").concat(member.age.stringValue()))
+                .from(member)
+                .where(member.name.eq("member1"))
+                .fetchOne();
+
+        log.info("result = {}", result);
+        assertThat(result).isEqualTo("member1_10");
     }
 }
