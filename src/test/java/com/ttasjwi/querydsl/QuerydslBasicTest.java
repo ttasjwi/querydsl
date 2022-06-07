@@ -523,4 +523,31 @@ public class QuerydslBasicTest {
         log.info("result = {}", result);
         assertThat(result).isEqualTo("member1_10");
     }
+
+    @Test
+    public void simpleProjection() {
+        List<String> names = queryFactory
+                .select(member.name)
+                .from(member)
+                .fetch();
+
+        for (String name : names) {
+            log.info("memberName = {}", name);
+        }
+    }
+
+    @Test
+    public void tupleProjection() {
+        //tuple은 repository 계층에서만 쓰기
+        //외부에 나갈때는 DTO로 변환해서 반환하기
+        List<Tuple> result = queryFactory
+                .select(member.name, member.age)
+                .from(member)
+                .fetch();
+
+        for (Tuple tuple : result) {
+            log.info("memberName = {}, memberAge = {}",
+                    tuple.get(member.name), tuple.get(member.age));
+        }
+    }
 }
