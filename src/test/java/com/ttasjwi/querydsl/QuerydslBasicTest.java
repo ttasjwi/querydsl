@@ -2,12 +2,15 @@ package com.ttasjwi.querydsl;
 
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
+import com.querydsl.core.types.dsl.CaseBuilder;
+import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.ttasjwi.querydsl.member.domain.Member;
 import com.ttasjwi.querydsl.member.domain.QMember;
 import com.ttasjwi.querydsl.team.domain.Team;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -442,6 +445,55 @@ public class QuerydslBasicTest {
                     tuple.get(member.name),
                     tuple.get(select(memberSub.age.avg())
                             .from(memberSub)));
+        }
+    }
+
+    @Test
+    public void basicCase() {
+        List<String> result = queryFactory
+                .select(member.age
+                        .when(10).then("열살")
+                        .when(20).then("스무살")
+                        .otherwise("기타"))
+                .from(member)
+                .fetch();
+
+        for (String s : result) {
+            log.info("s = {}",s);
+        }
+    }
+
+    @Test
+    public void complexCase() {
+        List<String> result = queryFactory
+                .select(new CaseBuilder()
+                        .when(member.age.between(0, 20)).then("0~20살")
+                        .when(member.age.between(21, 30)).then("21~30살")
+                        .otherwise("기타"))
+                .from(member)
+                .fetch();
+
+        for (String s : result) {
+            log.info("s = {}",s);
+        }
+    }
+
+    @Test
+    public void rankPath() {
+        NumberExpression<Integer> rankPath = new CaseBuilder()
+                .when(member.age.between(0, 20)).then(2)
+                .when(member.age.between(21, 30)).then(1)
+                .otherwise(3); // 복잡한 정렬조건을 부여하고 싶을 때
+
+        List<Tuple> result = queryFactory
+                .select(member.name, member.age, rankPath)
+                .from(member)
+                .orderBy(rankPath.desc(), member.age.desc())
+                .fetch();
+
+        for (Tuple tuple : result) {
+            log.info("memberName = {}, age =  {}, rank = {}",
+                    tuple.get(member.name), tuple.get(member.age), tuple.get(rankPath));
         }
     }
 }
