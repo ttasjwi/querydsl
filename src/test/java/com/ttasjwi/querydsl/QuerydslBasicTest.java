@@ -4,6 +4,7 @@ import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.ttasjwi.querydsl.member.domain.Member;
+import com.ttasjwi.querydsl.member.domain.QMember;
 import com.ttasjwi.querydsl.team.domain.Team;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
@@ -14,9 +15,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
-import javax.persistence.PersistenceUnit;
 import java.util.List;
 
+import static com.querydsl.jpa.JPAExpressions.select;
 import static com.ttasjwi.querydsl.member.domain.QMember.member;
 import static com.ttasjwi.querydsl.team.domain.QTeam.team;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -295,7 +296,7 @@ public class QuerydslBasicTest {
 
     /**
      * 예) 회원과 팀을 조인하면서, 팀 이름이 teamA인 팀만 조인, 회원은 모두 조회
-     *
+     * <p>
      * JPQL : SELECT m, t FROM Member as m LEFT JOIN m.team as t ON t.name = 'teamA'
      */
 
@@ -327,7 +328,7 @@ public class QuerydslBasicTest {
             log.info("tuple = {}", tuple);
         }
     }
-    
+
     @Test
     public void fetchJoinNo() {
         em.flush();
@@ -361,5 +362,86 @@ public class QuerydslBasicTest {
 
 
         assertThat(loaded).as("페치조인 적용").isTrue();
+    }
+
+    /**
+     * 나이가 가장 많은 회원 조회
+     */
+    @Test
+    public void subQueryMax() {
+        QMember memberSub = new QMember("memberSub");
+        List<Member> result = queryFactory
+                .selectFrom(member)
+                .where(member.age.eq(
+                        select(memberSub.age.max())
+                                .from(memberSub)
+                ))
+                .fetch();
+
+        assertThat(result).extracting("age")
+                .contains(40);
+    }
+
+    /**
+     * 나이가 가장 평균 이상인 회원 조회
+     */
+    @Test
+    public void subQueryGoe() {
+        QMember memberSub = new QMember("memberSub");
+        List<Member> result = queryFactory
+                .selectFrom(member)
+                .where(member.age.goe(
+                        select(memberSub.age.avg())
+                                .from(memberSub)
+                ))
+                .fetch();
+
+        for (Member findMember : result) {
+            log.info("findMember = {}", findMember);
+        }
+
+        assertThat(result).extracting("age")
+                .contains(30, 40);
+    }
+
+    /**
+     * in절을 이용, 테이블에서 10보다 큰 나이들을 조회하고 나이가 해당되는 회원들 조회
+     */
+    @Test
+    public void subQueryIn() {
+        QMember memberSub = new QMember("memberSub");
+        List<Member> result = queryFactory
+                .selectFrom(member)
+                .where(member.age.in(
+                        select(memberSub.age)
+                                .from(memberSub)
+                                .where(memberSub.age.gt(10))
+                ))
+                .fetch();
+
+        for (Member findMember : result) {
+            log.info("findMember = {}", findMember);
+        }
+
+        assertThat(result).extracting("age")
+                .contains(20, 30, 40);
+    }
+
+    @Test
+    public void selectSubQuery() {
+        QMember memberSub = new QMember("memberSub");
+        List<Tuple> result = queryFactory
+                .select(member.name,
+                        select(memberSub.age.avg())
+                                .from(memberSub))
+                .from(member)
+                .fetch();
+
+        for (Tuple tuple : result) {
+            log.info("memberName = {} // ageAvg = {}",
+                    tuple.get(member.name),
+                    tuple.get(select(memberSub.age.avg())
+                            .from(memberSub)));
+        }
     }
 }
