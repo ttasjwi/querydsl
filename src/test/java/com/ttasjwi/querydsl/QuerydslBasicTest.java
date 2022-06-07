@@ -1,5 +1,6 @@
 package com.ttasjwi.querydsl;
 
+import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
 import com.querydsl.core.types.Expression;
@@ -656,5 +657,29 @@ public class QuerydslBasicTest {
                 .fetch();
 
         assertThat(names.size()).isEqualTo(5);
+    }
+
+    @Test
+    public void dynamicQuery_BooleanBuilder() {
+
+        String nameParam = "member1";
+        Integer ageParam = null;
+
+        List<Member> result = searchMember1(nameParam, ageParam);
+        assertThat(result.size()).isEqualTo(1);
+    }
+
+    private List<Member> searchMember1(String nameCondition, Integer ageCondition) {
+        BooleanBuilder builder = new BooleanBuilder();
+        if (nameCondition != null) {
+            builder.and(member.name.eq(nameCondition));
+        }
+        if (ageCondition != null) {
+            builder.and(member.age.eq(ageCondition));
+        }
+        return queryFactory
+                .selectFrom(member)
+                .where(builder)
+                .fetch();
     }
 }
