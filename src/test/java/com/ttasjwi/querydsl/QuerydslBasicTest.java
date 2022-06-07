@@ -1,6 +1,7 @@
 package com.ttasjwi.querydsl;
 
 import com.querydsl.core.QueryResults;
+import com.querydsl.core.Tuple;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.ttasjwi.querydsl.member.domain.Member;
 import com.ttasjwi.querydsl.member.domain.QMember;
@@ -196,5 +197,27 @@ public class QuerydslBasicTest {
         assertThat(limit).isEqualTo(2);
         assertThat(offset).isEqualTo(1);
         assertThat(results.size()).isEqualTo(2);
+    }
+    
+    @Test
+    @DisplayName("")
+    public void aggregation() {
+        List<Tuple> results = queryFactory
+                .select(
+                        member.count(),
+                        member.age.sum(),
+                        member.age.avg(),
+                        member.age.max(),
+                        member.age.min()
+                ).from(member)
+                .fetch();
+
+        Tuple tuple = results.get(0);
+
+        assertThat(tuple.get(member.count())).isEqualTo(4);
+        assertThat(tuple.get(member.age.sum())).isEqualTo(100);
+        assertThat(tuple.get(member.age.avg())).isEqualTo(25);
+        assertThat(tuple.get(member.age.max())).isEqualTo(40);
+        assertThat(tuple.get(member.age.min())).isEqualTo(10);
     }
 }
