@@ -5,7 +5,7 @@ import com.querydsl.core.Tuple;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.ttasjwi.querydsl.member.domain.Member;
 import com.ttasjwi.querydsl.team.domain.Team;
-import org.junit.jupiter.api.Assertions;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,9 +18,9 @@ import java.util.List;
 
 import static com.ttasjwi.querydsl.member.domain.QMember.member;
 import static com.ttasjwi.querydsl.team.domain.QTeam.team;
-import static org.assertj.core.api.Assertions.as;
 import static org.assertj.core.api.Assertions.assertThat;
 
+@Slf4j
 @SpringBootTest
 @Transactional
 public class QuerydslBasicTest {
@@ -287,5 +287,40 @@ public class QuerydslBasicTest {
         assertThat(result)
                 .extracting("name")
                 .containsExactly("teamA", "teamB");
+    }
+
+    /**
+     * 예) 회원과 팀을 조인하면서, 팀 이름이 teamA인 팀만 조인, 회원은 모두 조회
+     *
+     * JPQL : SELECT m, t FROM Member as m LEFT JOIN m.team as t ON t.name = 'teamA'
+     */
+
+    @Test
+    public void join_on_filtering() {
+        List<Tuple> result = queryFactory
+                .select(member, team)
+                .from(member)
+                .leftJoin(member.team, team).on(team.name.eq("teamA"))
+                .fetch();
+
+        for (Tuple tuple : result) {
+            log.info("tuple= {}", tuple);
+        }
+    }
+
+    @Test
+    public void join_on_no_relation() {
+        em.persist(new Member("teamA"));
+        em.persist(new Member("teamB"));
+
+        List<Tuple> result = queryFactory
+                .select(member, team)
+                .from(member)
+                .leftJoin(team).on(member.name.eq(team.name)) // 연관관계와 상관없이 하므로 member.team이 아닌, team을 바로 조인 -> 실제 sql에서도 외래키 관련 쿼리가 안 날아감
+                .fetch();
+
+        for (Tuple tuple : result) {
+            log.info("tuple = {}", tuple);
+        }
     }
 }
