@@ -13,6 +13,7 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.ttasjwi.querydsl.member.domain.Member;
 import com.ttasjwi.querydsl.member.domain.QMember;
 import com.ttasjwi.querydsl.member.dto.MemberDto;
+import com.ttasjwi.querydsl.member.dto.QMemberDto;
 import com.ttasjwi.querydsl.member.dto.UserDto;
 import com.ttasjwi.querydsl.team.domain.Team;
 import lombok.extern.slf4j.Slf4j;
@@ -629,6 +630,17 @@ public class QuerydslBasicTest {
 
         for (UserDto userDto : userDtos) {
             log.info("userName = {}, age = {}", userDto.getUserName(), userDto.getAge());
+        }
+    }
+
+    @Test
+    public void findDtoByQueryProjection() {
+        List<MemberDto> result = queryFactory
+                .select(new QMemberDto(member.name, member.age)) // 컴파일 시점에 에러를 잡을 수 있음
+                .from(member)
+                .fetch();
+        for (MemberDto memberDto : result) {
+            log.info("memberDto = {}", memberDto);
         }
     }
 }
