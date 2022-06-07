@@ -643,4 +643,18 @@ public class QuerydslBasicTest {
             log.info("memberDto = {}", memberDto);
         }
     }
+
+    @Test
+    public void distinct() {
+        em.persist(new Member("member1")); // 중복 이름
+        em.persist(new Member("member2"));
+        em.persist(new Member("member5"));
+
+        List<String> names = queryFactory
+                .select(member.name).distinct()
+                .from(member)
+                .fetch();
+
+        assertThat(names.size()).isEqualTo(5);
+    }
 }
