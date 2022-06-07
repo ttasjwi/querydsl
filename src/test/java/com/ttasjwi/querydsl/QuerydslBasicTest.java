@@ -2,12 +2,18 @@ package com.ttasjwi.querydsl;
 
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
+import com.querydsl.core.types.Expression;
+import com.querydsl.core.types.ExpressionUtils;
+import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.CaseBuilder;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.NumberExpression;
+import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.ttasjwi.querydsl.member.domain.Member;
 import com.ttasjwi.querydsl.member.domain.QMember;
+import com.ttasjwi.querydsl.member.dto.MemberDto;
+import com.ttasjwi.querydsl.member.dto.UserDto;
 import com.ttasjwi.querydsl.team.domain.Team;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
@@ -461,7 +467,7 @@ public class QuerydslBasicTest {
                 .fetch();
 
         for (String s : result) {
-            log.info("s = {}",s);
+            log.info("s = {}", s);
         }
     }
 
@@ -476,7 +482,7 @@ public class QuerydslBasicTest {
                 .fetch();
 
         for (String s : result) {
-            log.info("s = {}",s);
+            log.info("s = {}", s);
         }
     }
 
@@ -548,6 +554,81 @@ public class QuerydslBasicTest {
         for (Tuple tuple : result) {
             log.info("memberName = {}, memberAge = {}",
                     tuple.get(member.name), tuple.get(member.age));
+        }
+    }
+
+    @Test
+    public void findDtoByJPQL() {
+        // FQCN이 바뀌면 사용 코드도 변경해야함..
+        List<MemberDto> memberDtos = em.createQuery("SELECT new com.ttasjwi.querydsl.member.dto.MemberDto(m.name, m.age) " +
+                        "FROM Member as m", MemberDto.class)
+                .getResultList();
+
+        for (MemberDto memberDto : memberDtos) {
+            log.info("memberName = {}, memberAge = {}", memberDto.getName(), memberDto.getAge());
+        }
+    }
+
+    @Test
+    public void findDtoBySetter() {
+        List<MemberDto> memberDtos = queryFactory
+                .select(Projections.bean(MemberDto.class,
+                        member.name,
+                        member.age))
+                .from(member)
+                .fetch();
+
+        for (MemberDto memberDto : memberDtos) {
+            log.info("memberName = {}, memberAge = {}", memberDto.getName(), memberDto.getAge());
+        }
+    }
+
+    @Test
+    public void findDtoByField() {
+        List<MemberDto> memberDtos = queryFactory
+                .select(Projections.fields(MemberDto.class,
+                        member.name,
+                        member.age))
+                .from(member)
+                .fetch();
+
+        for (MemberDto memberDto : memberDtos) {
+            log.info("memberName = {}, memberAge = {}", memberDto.getName(), memberDto.getAge());
+        }
+    }
+
+    @Test
+    public void findDtoByConstructor() {
+        List<MemberDto> memberDtos = queryFactory
+                .select(Projections.constructor(MemberDto.class,
+                        member.name,
+                        member.age))
+                .from(member)
+                .fetch();
+
+        for (MemberDto memberDto : memberDtos) {
+            log.info("memberName = {}, memberAge = {}", memberDto.getName(), memberDto.getAge());
+        }
+    }
+
+    @Test
+    public void findUserDto() {
+        QMember memberSub = new QMember("memberSub");
+
+        List<UserDto> userDtos = queryFactory
+                .select(Projections.fields(UserDto.class,
+                        member.name.as("userName"), // 필드명이 다를 때
+                        ExpressionUtils.as(
+                                JPAExpressions
+                                        .select(memberSub.age.max())
+                                        .from(memberSub), "age") // 서브쿼리 결과를 alias 준 뒤 프로퍼티에 넣을 때
+                        )
+                )
+                .from(member)
+                .fetch();
+
+        for (UserDto userDto : userDtos) {
+            log.info("userName = {}, age = {}", userDto.getUserName(), userDto.getAge());
         }
     }
 }
