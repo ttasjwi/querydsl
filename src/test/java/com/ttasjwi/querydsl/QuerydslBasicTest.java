@@ -7,13 +7,14 @@ import com.ttasjwi.querydsl.member.domain.Member;
 import com.ttasjwi.querydsl.team.domain.Team;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.PersistenceUnit;
 import java.util.List;
 
 import static com.ttasjwi.querydsl.member.domain.QMember.member;
@@ -27,6 +28,9 @@ public class QuerydslBasicTest {
 
     @Autowired
     private EntityManager em;
+
+    @Autowired
+    private EntityManagerFactory emf;
 
     private JPAQueryFactory queryFactory;
 
@@ -322,5 +326,40 @@ public class QuerydslBasicTest {
         for (Tuple tuple : result) {
             log.info("tuple = {}", tuple);
         }
+    }
+    
+    @Test
+    public void fetchJoinNo() {
+        em.flush();
+        em.clear();
+
+        Member findMember = queryFactory
+                .selectFrom(member)
+                .where(member.name.eq("member1"))
+                .fetchOne();
+
+        //로딩 됐는지 여부
+        boolean loaded = emf.getPersistenceUnitUtil().isLoaded(findMember.getTeam());
+
+
+        assertThat(loaded).as("페치조인 미적용").isFalse();
+    }
+
+    @Test
+    public void fetchJoinUse() {
+        em.flush();
+        em.clear();
+
+        Member findMember = queryFactory
+                .selectFrom(member)
+                .join(member.team).fetchJoin()
+                .where(member.name.eq("member1"))
+                .fetchOne();
+
+        //로딩 됐는지 여부
+        boolean loaded = emf.getPersistenceUnitUtil().isLoaded(findMember.getTeam());
+
+
+        assertThat(loaded).as("페치조인 적용").isTrue();
     }
 }
