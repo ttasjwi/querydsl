@@ -18,7 +18,9 @@ import com.ttasjwi.querydsl.member.dto.QMemberDto;
 import com.ttasjwi.querydsl.member.dto.UserDto;
 import com.ttasjwi.querydsl.team.domain.Team;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -33,6 +35,7 @@ import java.util.List;
 import static com.querydsl.jpa.JPAExpressions.select;
 import static com.ttasjwi.querydsl.member.domain.QMember.member;
 import static com.ttasjwi.querydsl.team.domain.QTeam.team;
+import static org.assertj.core.api.Assertions.as;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Slf4j
@@ -619,11 +622,11 @@ public class QuerydslBasicTest {
 
         List<UserDto> userDtos = queryFactory
                 .select(Projections.fields(UserDto.class,
-                        member.name.as("userName"), // 필드명이 다를 때
-                        ExpressionUtils.as(
-                                JPAExpressions
-                                        .select(memberSub.age.max())
-                                        .from(memberSub), "age") // 서브쿼리 결과를 alias 준 뒤 프로퍼티에 넣을 때
+                                member.name.as("userName"), // 필드명이 다를 때
+                                ExpressionUtils.as(
+                                        JPAExpressions
+                                                .select(memberSub.age.max())
+                                                .from(memberSub), "age") // 서브쿼리 결과를 alias 준 뒤 프로퍼티에 넣을 때
                         )
                 )
                 .from(member)
@@ -717,4 +720,70 @@ public class QuerydslBasicTest {
         return memberNameEq(nameCondition).and(memberAgeEq(ageCondition));
     }
 
+    @Test
+    public void bulkUpdate() {
+        long updatedRowCount = queryFactory
+                .update(member)
+                .set(member.name, "비회원")
+                .set(member.age, 0) // 여러 프로퍼티 변경은 이렇게 set을 여러번 호출하면 된다.
+                .where(member.age.lt(21))
+                .execute();
+
+        em.clear();
+        // 벌크 연산 후에는 영속성 컨텍스트의 상태와 DB의 상태가 같다는 보장이 안 됨. 영속성 컨텍스트를 비우자.
+
+        assertThat(updatedRowCount).isEqualTo(2);
+
+        List<Member> members = queryFactory
+                .selectFrom(member)
+                .fetch();
+
+        for (Member findMember : members) {
+            log.info("findMember = {}", findMember);
+        }
+    }
+
+    @Test
+    public void bulkAddUpdate() {
+        long updatedRowCount = queryFactory
+                .update(member)
+                .set(member.age, member.age.add(1))
+                .execute();
+
+        em.clear();
+
+        List<Member> members = queryFactory
+                .selectFrom(member)
+                .fetch();
+
+        for (Member findMember : members) {
+            log.info("findMember = {}", findMember);
+        }
+
+        Integer memberAge1 = queryFactory
+                .select(member.age)
+                .from(member)
+                .where(member.name.eq("member1"))
+                .fetchOne();
+
+        assertThat(memberAge1).isEqualTo(11);
+    }
+
+    @Test
+    public void bulkDelete() {
+        long count = queryFactory
+                .delete(member)
+                .where(member.age.gt(18))
+                .execute();
+        em.clear();
+
+        List<Member> members = queryFactory.selectFrom(member).fetch();
+
+        for (Member findMember : members) {
+            log.info("findMember = {}", findMember);
+        }
+
+        assertThat(count).isEqualTo(3);
+        assertThat(members.size()).isEqualTo(1);
+    }
 }
