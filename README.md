@@ -163,3 +163,50 @@ public class MemberJpaRepository {
 - 메모리 부족으로 서버가 죽을 수 있음!!! 매우 주의해야한다. 적절하게 끊어서 가져올 수 있도록 페이징 쿼리를 작성해야한다.
 
 ---
+
+## 동적 쿼리와 성능 최적화 조회 - Where절 파라미터 사용
+```java
+public List<MemberTeamDto> search(MemberSearchCondition condition) {
+    return queryFactory
+            .select(new QMemberTeamDto(member.id, member.name, member.age, team.id, team.name))
+            .from(member)
+            .leftJoin(member.team, team)
+            .where(
+                    memberNameEq(condition.getMemberName()),
+                    teamNameEq(condition.getTeamName()),
+                    ageGoe(condition.getAgeGoe()),
+                    ageLoe(condition.getAgeLoe()))
+            .fetch();
+}
+
+private BooleanExpression memberNameEq(String memberNameCond) {
+    return hasText(memberNameCond)
+            ? member.name.eq(memberNameCond)
+            : null;
+}
+private BooleanExpression teamNameEq(String teamNameCond) {
+    return hasText(teamNameCond)
+            ? team.name.eq(teamNameCond)
+            : null;
+}
+
+private BooleanExpression ageGoe(Integer ageGoeCond) {
+    return ageGoeCond != null
+            ? member.age.eq(ageGoeCond)
+            : null;
+}
+
+private BooleanExpression ageLoe(Integer ageLoeCond) {
+    return ageLoeCond != null
+            ? member.age.eq(ageLoeCond)
+            : null;
+}
+```
+- 검색 조건들을 별도의 메서드로 분리하고 Where절에서 `콤마(,)`로 묶어서 사용
+- Where절에서 `BooleanExpression`은
+  - 기본적으로 `and`로 묶임
+  - null일 경우 무시됨
+- 파라미터의 null 여부에만 주의하면 됨
+- **분리한 BooleanExpression 반환 메서드는 재사용이 가능하다!**
+
+---

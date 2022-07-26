@@ -1,6 +1,8 @@
 package com.ttasjwi.querydsl.member.repository;
 
 import com.querydsl.core.BooleanBuilder;
+import com.querydsl.core.types.Predicate;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.ttasjwi.querydsl.member.domain.Member;
 import com.ttasjwi.querydsl.member.dto.MemberSearchCondition;
@@ -111,4 +113,43 @@ public class MemberJpaRepository {
                 .fetch();
     }
 
+    /**
+     * Builder를 사용한 동적 쿼리 - Where절 파라미터 사용
+     * 회원명, 팀명, 나이(ageGoe, ageLoe)
+     */
+    public List<MemberTeamDto> search(MemberSearchCondition condition) {
+        return queryFactory
+                .select(new QMemberTeamDto(member.id, member.name, member.age, team.id, team.name))
+                .from(member)
+                .leftJoin(member.team, team)
+                .where(
+                        memberNameEq(condition.getMemberName()),
+                        teamNameEq(condition.getTeamName()),
+                        ageGoe(condition.getAgeGoe()),
+                        ageLoe(condition.getAgeLoe()))
+                .fetch();
+    }
+
+    private BooleanExpression memberNameEq(String memberNameCond) {
+        return hasText(memberNameCond)
+                ? member.name.eq(memberNameCond)
+                : null;
+    }
+    private BooleanExpression teamNameEq(String teamNameCond) {
+        return hasText(teamNameCond)
+                ? team.name.eq(teamNameCond)
+                : null;
+    }
+
+    private BooleanExpression ageGoe(Integer ageGoeCond) {
+        return ageGoeCond != null
+                ? member.age.eq(ageGoeCond)
+                : null;
+    }
+
+    private BooleanExpression ageLoe(Integer ageLoeCond) {
+        return ageLoeCond != null
+                ? member.age.eq(ageLoeCond)
+                : null;
+    }
 }
