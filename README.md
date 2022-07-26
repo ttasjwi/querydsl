@@ -74,3 +74,33 @@ where
 - 문자타입이 아닌 경우( **숫자**, **enum**) stringValue 활용해서 문자열로 변환해서 쓸 것
 
 ---
+
+## SQLFunction 호출
+
+### 함수 호출 방법
+```java
+List<String> result = queryFactory
+        .select(Expressions.stringTemplate(
+                "function('replace', {0}, {1}, {2})",
+                member.name, "member", "M"))
+        .from(member)
+        .fetch();
+```
+> Expressions.stringTemplate("function('함수명', {0}, {1}, ...", 인자0, 인자1, ...))
+
+1. 기본적으로 각 DB별 Dialect에 함수들 대다수가 내장되어 있음.
+2. 별도로 정의한 함수는 Dialect 상속 클래스에 함수를 등록해야함.
+
+### ANSI 표준 SQL 함수 호출
+```java
+        List<String> result = queryFactory
+                .select(member.name)
+                .from(member)
+//                .where(member.name.eq(Expressions.stringTemplate(
+//                        "function('lower', {0})", member.name)))
+                .where(member.name.eq(member.name.lower()))
+                .fetch();
+```
+- querydsl에 기본 내장되어 있는 경우가 많아서 웬만해선 메서드 호출하면 됨
+
+---

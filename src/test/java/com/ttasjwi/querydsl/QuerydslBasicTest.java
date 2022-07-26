@@ -786,4 +786,37 @@ public class QuerydslBasicTest {
         assertThat(count).isEqualTo(3);
         assertThat(members.size()).isEqualTo(1);
     }
+
+    @Test
+    @DisplayName("Dialect에 등록된 sql 함수를 호출하여 사용하기")
+    public void sqlFunction() {
+        /**
+         * replace(컬럼명, '기존문자열', '변경문자열') : 지정 컬럼의 기존 문자열을 변경 문자열로 교체한 결과를 가져옴
+         */
+        List<String> result = queryFactory
+                .select(Expressions.stringTemplate(
+                        "function('replace', {0}, {1}, {2})",
+                        member.name, "member", "M"))
+                .from(member)
+                .fetch();
+
+        for (String s : result) {
+            log.info("s = {}", s);
+        }
+    }
+
+    @Test
+    @DisplayName("ANSI 표준 함수들은 Querydsl에 내장되어 있어서 별도로 호출하지 않아도 결과가 같다")
+    public void sqlFunction2() {
+        List<String> result = queryFactory
+                .select(member.name)
+                .from(member)
+//                .where(member.name.eq(Expressions.stringTemplate(
+//                        "function('lower', {0})", member.name)))
+                .where(member.name.eq(member.name.lower()))
+                .fetch();
+        for (String s : result) {
+            log.info("s= {}",s);
+        }
+    }
 }
