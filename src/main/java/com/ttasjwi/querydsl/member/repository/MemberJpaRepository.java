@@ -1,14 +1,22 @@
 package com.ttasjwi.querydsl.member.repository;
 
+import com.querydsl.core.BooleanBuilder;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.ttasjwi.querydsl.member.domain.Member;
+import com.ttasjwi.querydsl.member.dto.MemberSearchCondition;
+import com.ttasjwi.querydsl.member.dto.MemberTeamDto;
+import com.ttasjwi.querydsl.member.dto.QMemberTeamDto;
+import com.ttasjwi.querydsl.team.domain.QTeam;
 import org.springframework.stereotype.Repository;
+import org.springframework.util.StringUtils;
 
 import javax.persistence.EntityManager;
 import java.util.List;
 import java.util.Optional;
 
 import static com.ttasjwi.querydsl.member.domain.QMember.member;
+import static com.ttasjwi.querydsl.team.domain.QTeam.*;
+import static org.springframework.util.StringUtils.*;
 
 @Repository
 public class MemberJpaRepository {
@@ -76,4 +84,31 @@ public class MemberJpaRepository {
                 .where(member.name.eq(name))
                 .fetch();
     }
+
+    /**
+     * Builder를 사용한 동적 쿼리
+     * 회원명, 팀명, 나이(ageGoe, ageLoe)
+     */
+    public List<MemberTeamDto> searchByBuilder(MemberSearchCondition condition) {
+        BooleanBuilder builder = new BooleanBuilder();
+        if (hasText(condition.getMemberName())) {
+            builder.and(member.name.eq(condition.getMemberName()));
+        }
+        if (hasText(condition.getTeamName())) {
+            builder.and(team.name.eq(condition.getTeamName()));
+        }
+        if (condition.getAgeGoe() != null) {
+            builder.and(member.age.goe(condition.getAgeGoe()));
+        }
+        if (condition.getAgeLoe() != null) {
+            builder.and(member.age.loe(condition.getAgeLoe()));
+        }
+        return queryFactory.select(new QMemberTeamDto(
+                member.id, member.name, member.age, team.id, team.name))
+                .from(member)
+                .leftJoin(member.team, team)
+                .where(builder)
+                .fetch();
+    }
+
 }

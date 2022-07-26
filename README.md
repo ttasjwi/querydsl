@@ -126,3 +126,40 @@ public class MemberJpaRepository {
     - 상세 내용 : 자바 ORM 표준 JPA 프로그래밍 책 13.1 참조
 
 ---
+
+## 동적 쿼리와 성능 최적화 조회 - Builder 사용
+```java
+    /**
+     * Builder를 사용한 동적 쿼리
+     * 회원명, 팀명, 나이(ageGoe, ageLoe)
+     */
+    public List<MemberTeamDto> searchByBuilder(MemberSearchCondition condition) {
+        BooleanBuilder builder = new BooleanBuilder();
+        if (hasText(condition.getMemberName())) {
+            builder.and(member.name.eq(condition.getMemberName()));
+        }
+        if (hasText(condition.getTeamName())) {
+            builder.and(team.name.eq(condition.getTeamName()));
+        }
+        if (condition.getAgeGoe() != null) {
+            builder.and(member.age.goe(condition.getAgeGoe()));
+        }
+        if (condition.getAgeLoe() != null) {
+            builder.and(member.age.loe(condition.getAgeLoe()));
+        }
+        return queryFactory.select(new QMemberTeamDto(
+                member.id, member.name, member.age, team.id, team.name))
+                .from(member)
+                .leftJoin(member.team, team)
+                .where(builder)
+                .fetch();
+    }
+```
+- if문을 통해 파라미터의 존재 여부 등에 따라 `BooleanBuilder`를 동적으로 구성
+- BooleanBuilder를 where절 파라미터를 통해 넘기면 된다.
+
+### 주의점
+- 검색 파라미터에 아무 것도 들어가지 않을 경우 모든 엔티티를 조회하고 메모리에 끌어옴
+- 메모리 부족으로 서버가 죽을 수 있음!!! 매우 주의해야한다. 적절하게 끊어서 가져올 수 있도록 페이징 쿼리를 작성해야한다.
+
+---
