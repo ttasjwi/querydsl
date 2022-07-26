@@ -104,3 +104,25 @@ List<String> result = queryFactory
 - querydsl에 기본 내장되어 있는 경우가 많아서 웬만해선 메서드 호출하면 됨
 
 ---
+
+## 순수 JPA와 Querydsl
+```java
+@Repository
+public class MemberJpaRepository {
+
+    private final EntityManager em;
+    private final JPAQueryFactory queryFactory;
+
+
+    public MemberJpaRepository(EntityManager em) {
+        this.em = em;
+        this.queryFactory = new JPAQueryFactory(em);
+    }
+```
+- JPAQueryFactory는 EntityManager를 의존한다.
+- 그런데 EntityManager는 싱글톤이기 때문에 동시성 문제가 발생할 수 있지 않겠냐는 걱정이 들 수 있다.
+  - 결론 : 여기서 등록되는 EntityManager는 가짜 프록시 엔티티 매니저
+    - 가짜 엔티티 매니저는 실제 사용 시점에 요청마다 트랜잭션 단위로 실제 엔티티 매니저(영속성 컨텍스트)를 할당해준다.
+    - 상세 내용 : 자바 ORM 표준 JPA 프로그래밍 책 13.1 참조
+
+---
